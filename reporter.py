@@ -1,6 +1,6 @@
 # reporter.py
 import matplotlib
-import matplotlib.font_manager as font_manager   # 后加入
+import matplotlib.font_manager as font_manager
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -9,20 +9,20 @@ import logging
 from config import OUTPUT_DIR
 
 logger = logging.getLogger(__name__)
+
 # —— 用项目内的字体文件，跨平台稳定 ——
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 FONT_PATH = os.path.join(BASE_DIR, 'fonts', 'simhei.ttf')
 
+# 不再设置 plt.rcParams['font.sans-serif']，避免无效字体名刷 WARNING
 if os.path.exists(FONT_PATH):
     ZH_FONT = font_manager.FontProperties(fname=FONT_PATH)
-    plt.rcParams['font.sans-serif'] = [ZH_FONT.get_name()]
     logger.info(f"使用项目字体: {FONT_PATH}")
 else:
     # 兜底：按系统字体名
     ZH_FONT = font_manager.FontProperties(
         family=['SimHei', 'Microsoft YaHei', 'WenQuanYi Micro Hei']
     )
-    plt.rcParams['font.sans-serif'] = ['SimHei', 'Microsoft YaHei', 'WenQuanYi Micro Hei']
     logger.warning("未找到项目字体文件，回退到系统字体")
 
 plt.rcParams['axes.unicode_minus'] = False
@@ -47,10 +47,13 @@ def generate_all_reports(region_stats):
     )
     latest_time = region_stats['统计时间'].iloc[0]
 
-    # 关键：所有中文元素都加 fontproperties=ZH_FONT
     plt.title(f'各区域当前人数统计 (更新于 {latest_time})', fontproperties=ZH_FONT)
     plt.ylabel('人数', fontproperties=ZH_FONT)
-    plt.xticks(fontproperties=ZH_FONT)   # 区域名称是中文，必须指定
+
+    # 关键：对每个 x 轴标签逐个设置字体（plt.xticks 的 fontproperties 不生效）
+    ax = plt.gca()
+    for label in ax.get_xticklabels():
+        label.set_fontproperties(ZH_FONT)
 
     # 修复 y 轴范围，避免柱子看不见
     ymax = max(
